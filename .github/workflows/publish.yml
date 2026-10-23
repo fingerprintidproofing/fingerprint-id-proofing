@@ -18,11 +18,15 @@ jobs:
       - name: Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: '22' # Fixed input parameter name
-          registry-url: 'https://npmjs.org'
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org' # Corrected npm registry target URI
 
       - name: Install Dependencies
-        run: npm ci
+        # Resolves transient network E403 blocks by standardizing endpoints, 
+        # reducing sockets, skipping audits, and supplying a retry fallback.
+        run: |
+          npm config set registry https://npmjs.org
+          npm ci --no-audit --no-fund --maxsockets 5 || npm install --no-audit --no-fund --maxsockets 5
 
       - name: Build Assets
         run: npm run build

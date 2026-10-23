@@ -22,11 +22,14 @@ jobs:
           registry-url: 'https://registry.npmjs.org' # Corrected npm registry target URI
 
       - name: Install Dependencies
-        # Resolves transient network E403 blocks by standardizing endpoints, 
-        # reducing sockets, skipping audits, and supplying a retry fallback.
+        # Rewrites registry paths inside the cached lockfile layout, strips audit firewalls,
+        # and runs an isolated deployment install.
         run: |
+          sed -i 's|https://www.npmjs.com|https://registry.npmjs.org|g' package-lock.json
+          sed -i 's|https://npmjs.org|https://registry.npmjs.org|g' package-lock.json
           npm config set registry https://npmjs.org
           npm ci --no-audit --no-fund --maxsockets 5 || npm install --no-audit --no-fund --maxsockets 5
+
 
       - name: Build Assets
         run: npm run build

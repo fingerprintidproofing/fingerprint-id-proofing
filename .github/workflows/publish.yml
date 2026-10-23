@@ -15,27 +15,22 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js Environment
+      - name: Setup Node.js Environment & Dependency Cache
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          registry-url: 'https://registry.npmjs.org' # Corrected npm registry target URI
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm' # Automatically sets up a pristine dependency cache path
 
       - name: Install Dependencies
-        # Rewrites registry paths inside the cached lockfile layout, strips audit firewalls,
-        # and runs an isolated deployment install.
+        # If npm ci encounters a 403 firewall block, it uses the cached tarballs locally
         run: |
-          sed -i 's|https://www.npmjs.com|https://registry.npmjs.org|g' package-lock.json
-          sed -i 's|https://npmjs.org|https://registry.npmjs.org|g' package-lock.json
-          npm config set registry https://npmjs.org
-          npm ci --no-audit --no-fund --maxsockets 5 || npm install --no-audit --no-fund --maxsockets 5
-
+          npm ci --prefer-offline --no-audit --no-fund || npm install --prefer-offline --no-audit --no-fund
 
       - name: Build Assets
         run: npm run build
 
       - name: Copy TypeScript Declaration Files
-        # Ensures your typing maps are in the root directory before publishing
         run: |
           cp src/index.d.ts ./index.d.ts || true
           cp src/backend.d.ts ./backend.d.ts || true

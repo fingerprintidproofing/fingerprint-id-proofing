@@ -1,35 +1,37 @@
-name: Publish to npm
+name: publish
 
 on:
   release:
-    types: [published] # Triggers when you create a GitHub Release
+    types: [published]
 
 jobs:
-  publish:
+  publish-npm:
     runs-on: ubuntu-latest
     permissions:
+      id-token: write
       contents: read
-      id-token: write # 👈 MANDATORY: Gives GitHub permission to mint the OIDC token
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
+          node-version: '22' # Fixed input parameter name
           registry-url: 'https://npmjs.org'
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: npm ci
 
-      # Run your build step if your code needs compilation/obfuscation
-      - name: Build package
-        run: npm run build --if-present
+      - name: Build Assets
+        run: npm run build
 
-      # --provenance binds the npm package to this exact GitHub Action run
-      - name: Publish to npm registry
+      - name: Copy TypeScript Declaration Files
+        # Ensures your typing maps are in the root directory before publishing
+        run: |
+          cp src/index.d.ts ./index.d.ts || true
+          cp src/backend.d.ts ./backend.d.ts || true
+
+      - name: Publish to npm Registry via OIDC
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Uses the temporary OIDC session token

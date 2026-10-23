@@ -1,6 +1,6 @@
 {
   "name": "fingerprint-id-proofing",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "JavaScript browser fingerprinting and telemetry SDK for device signals, identity proofing, and fraud risk scoring.",
   "main": "index.js",
   "types": "index.d.ts",
@@ -31,7 +31,7 @@
     "test": "node --test",
     "prepublishOnly": "npm run build"
   },
-    "publishConfig": {
+  "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"
   },

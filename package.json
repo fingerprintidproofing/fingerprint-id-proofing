@@ -31,6 +31,10 @@
     "test": "node --test",
     "prepublishOnly": "npm run build"
   },
+    "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
   "keywords": [
     "fingerprint",
     "browser-fingerprinting",

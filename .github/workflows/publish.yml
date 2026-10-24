@@ -7,20 +7,21 @@ on:
 jobs:
   publish-npm:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # MANDATORY: Allows GitHub to sign the cryptographic handshake
+      contents: read   # MANDATORY: Allows the checkout of your source files
 
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js Environment & Cache
+      - name: Setup Node.js Environment & Dependency Cache
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org/'
 
       - name: Install Dependencies
-        # Clean sandbox installation. Notice that NO environment variables or tokens 
-        # are injected here. This allows public packages to download normally.
         run: |
           rm -f package-lock.json
           npm install --no-audit --no-fund
@@ -33,8 +34,6 @@ jobs:
           cp src/index.d.ts ./index.d.ts || true
           cp src/backend.d.ts ./backend.d.ts || true
 
-      - name: Publish to npm Registry via Classic Access Token
-        # The NPM token secret is injected strictly inside this execution block.
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm Registry via Secure OIDC Handshake
+        # --provenance registers the build validation matrix cleanly on the public log ledger
+        run: npm publish --provenance --access public

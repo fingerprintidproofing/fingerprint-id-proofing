@@ -1,6 +1,6 @@
 {
   "name": "fingerprint-id-proofing",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "description": "JavaScript browser fingerprinting and telemetry SDK for device signals, identity proofing, and fraud risk scoring.",
   "main": "index.js",
   "types": "index.d.ts",

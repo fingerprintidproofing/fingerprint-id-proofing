@@ -17,27 +17,32 @@ pnpm add fingerprint-id-proofing
 
 ## Browser Quick Start
 
-The browser entry is an ES module. `getVisitorId()` computes a visitor ID locally and does not make a network request. `getSessionId()` starts the key exchange and sends browser telemetry to Fingerprint ID Proofing; await it and handle failures.
+The browser entry is an ES module. `getVisitorId()` computes a visitor ID locally and does not make a network request. Importing the SDK alone does not send telemetry: call `getSessionId()` once as early as your page bootstrap or `DOMContentLoaded` to start the key exchange and dispatch telemetry in the background. Do not wait until the user clicks the login button. Keep the returned promise and use its session ID in your login request. The session promise confirms telemetry dispatch; your server performs the risk assessment separately with `verifySessionScore()`.
 
 ```js
 import FingerprintIdProofing from 'fingerprint-id-proofing';
 
 const visitorId = FingerprintIdProofing.getVisitorId();
+const sessionIdPromise = FingerprintIdProofing.getSessionId().catch(() => null);
 
-try {
-  const sessionId = await FingerprintIdProofing.getSessionId();
-  await fetch('/api/sign-in', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ visitorId, sessionId })
-  });
-} catch (error) {
-  // Apply your application's documented fallback or step-up policy.
-  console.error('Device assessment is unavailable.');
+async function signIn(credentials) {
+  try {
+    const sessionId = await sessionIdPromise;
+    if (!sessionId) throw new Error('Telemetry session unavailable');
+
+    await fetch('/api/sign-in', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...credentials, visitorId, sessionId })
+    });
+  } catch (error) {
+    // Apply your application's documented fallback or step-up policy.
+    console.error('Device assessment is unavailable.');
+  }
 }
 ```
 
-Call these methods in a browser context, such as a client-side event or component effect. Do not treat a visitor ID as an authentication credential or proof of identity.
+In frameworks, start the session from a client-side bootstrap or mount effect. Do not treat a visitor ID as an authentication credential or proof of identity.
 
 ## Server-Side Assessment
 

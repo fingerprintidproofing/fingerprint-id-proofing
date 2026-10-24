@@ -72,6 +72,37 @@ if (assessment.policyDecision !== 'approve') {
 
 The verifier sends the session ID, user ID, and visitor ID to the assessment API. Network errors, non-success HTTP responses, and malformed assessment responses return a conservative fallback with `policyDecision: "obligation"`, `policyObligation: true`, `sdkFallback: true`, and `errorCode: "ASSESSMENT_UNAVAILABLE"`. Signals in this fallback are marked `unverified`; it never grants approval. Route obligations to MFA or manual review. Invalid method inputs still reject with an error.
 
+## Verify Risk Assessment
+
+Sign up at [fingerprintidproofing.com](https://fingerprintidproofing.com/) if you are new, or log in to your existing account. In your workspace, create an API key, review analytics logs, and explore the platform features available to your account. Store the key in a server-side environment variable and never expose it in browser code:
+
+```bash
+FINGERPRINT_ID_PROOFING_SECRET=your_server_api_key
+```
+
+After `verifySessionScore()` returns, read the score and policy decision from the assessment. A score may be unavailable, including in an SDK fallback, so use the service's policy decision as the access-control result and handle `obligation` with step-up verification:
+
+```js
+const riskScore = assessment.acquiredAttributes?.profiledRiskScore;
+const decision = assessment.policyDecision;
+
+if (assessment.sdkFallback || decision === 'obligation') {
+  // Require MFA or send the transaction for manual review.
+} else if (decision === 'deny') {
+  // Deny the transaction.
+} else if (decision === 'approve') {
+  // Continue with your normal authentication flow.
+}
+
+console.log('Risk score:', riskScore ?? 'unavailable');
+```
+
+## Trusted Device
+
+Assessment responses may include device-trust signals under `userAssertionList[].assertions`, including `test.trustedDevice`, `test.trustedDevice28days`, and `test.gte5Device1d`. Inspect these values along with the policy decision; an SDK fallback marks them `unverified` and must not count as a trusted device.
+
+Only offer to remember a device after the user completes your required authentication step, such as MFA. This npm SDK currently supports assessment and trusted-device lookup; it does not expose a trusted-device enrollment method. Use the enrollment endpoint and request format documented in your Fingerprint workspace. Do not guess an endpoint or treat a browser-provided visitor ID alone as proof that a device is trusted.
+
 ## Browser CDN
 
 For a browser page without a bundler, load the package as an ES module. Pin the version you have tested before deploying.

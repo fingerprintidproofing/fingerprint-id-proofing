@@ -12,15 +12,15 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js Environment
+      - name: Setup Node.js Environment & Cache
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          registry-url: 'https://npmjs.org'
+          registry-url: 'https://registry.npmjs.org/'
 
       - name: Install Dependencies
-        # We completely delete the lockfile to destroy the bad hardcoded zod download URLs.
-        # Then, we run standard install which pulls dynamically from registry.npmjs.org.
+        # Clean sandbox installation. Notice that NO environment variables or tokens 
+        # are injected here. This allows public packages to download normally.
         run: |
           rm -f package-lock.json
           npm install --no-audit --no-fund
@@ -34,6 +34,7 @@ jobs:
           cp src/backend.d.ts ./backend.d.ts || true
 
       - name: Publish to npm Registry via Classic Access Token
+        # The NPM token secret is injected strictly inside this execution block.
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

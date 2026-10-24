@@ -19,8 +19,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          # IMPORTANT: Do NOT set registry-url here when using OIDC with setup-node@v4.
-          # Your package.json already defines publishConfig.registry.
 
       - name: Upgrade npm to >= 11.5.1 (Mandatory for OIDC Trusted Publishing)
         run: |
@@ -35,11 +33,5 @@ jobs:
       - name: Build Assets
         run: npm run build
 
-      - name: Copy TypeScript Declaration Files
-        run: |
-          cp src/index.d.ts ./index.d.ts || true
-          cp src/backend.d.ts ./backend.d.ts || true
-
       - name: Publish to npm Registry via Secure OIDC Handshake
-        # --ignore-scripts prevents prepublishOnly from running 'npm run build' a second time
         run: npm publish --provenance --access public --ignore-scripts

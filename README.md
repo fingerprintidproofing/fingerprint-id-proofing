@@ -79,22 +79,27 @@ Sign up at [fingerprintidproofing.com](https://fingerprintidproofing.com/) if yo
 ```bash
 FINGERPRINT_ID_PROOFING_SECRET=your_server_api_key
 ```
-
+Optional (Alternative for server side npm)
 After `verifySessionScore()` returns, read the score and policy decision from the assessment. A score may be unavailable, including in an SDK fallback, so use the service's policy decision as the access-control result and handle `obligation` with step-up verification:
 
-```js
-const riskScore = assessment.acquiredAttributes?.profiledRiskScore;
-const decision = assessment.policyDecision;
 
-if (assessment.sdkFallback || decision === 'obligation') {
-  // Require MFA or send the transaction for manual review.
-} else if (decision === 'deny') {
-  // Deny the transaction.
-} else if (decision === 'approve') {
-  // Continue with your normal authentication flow.
+```js
+POST /verify-assessment
+Authorization: Bearer <developer-portal-secret>
+Content-Type: application/json
+
+{
+  "sessionId": "session_from_browser",
+  "userId": "authenticated_user_id"
 }
 
-console.log('Risk score:', riskScore ?? 'unavailable');
+POST /devices/trust
+Authorization: Bearer <same-developer-portal-secret>
+
+{
+  "sessionId": "same-recently-assessed-session",
+  "userId": "same-authenticated-user-id"
+}
 ```
 
 ## Trusted Device

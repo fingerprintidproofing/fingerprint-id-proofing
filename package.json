@@ -1,6 +1,6 @@
 {
   "name": "fingerprint-id-proofing",
-  "version": "1.0.25",
+  "version": "1.0.26",
   "description": "JavaScript browser fingerprinting and telemetry SDK for device signals, identity proofing, and fraud risk scoring.",
   "repository": {
     "type": "git",
@@ -27,7 +27,7 @@
     "backend.js",
     "backend.d.ts"
   ],
-"scripts": {
+  "scripts": {
     "clean": "rm -f index.js backend.js",
     "build:client": "javascript-obfuscator src/index.js --output ./index.js --compact true --self-defending true --string-array true --string-array-encoding 'rc4' --string-array-threshold 1 --control-flow-flattening true --control-flow-flattening-threshold 1 --dead-code-injection true --dead-code-injection-threshold 1",
     "build:server": "cp src/backend.js ./backend.js",

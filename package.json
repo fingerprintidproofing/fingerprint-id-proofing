@@ -35,8 +35,7 @@
     "test": "node --test",
     "prepublishOnly": "npm run build"
   },
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
+"publishConfig": {
     "access": "public"
   },
   "keywords": [

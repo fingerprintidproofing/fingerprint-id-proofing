@@ -3,13 +3,14 @@ name: publish
 on:
   release:
     types: [published]
+  workflow_dispatch: # Allows you to test from the GitHub Actions tab without creating a new release
 
 jobs:
   publish-npm:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write  # MANDATORY: Allows GitHub to sign the cryptographic OIDC handshake
-      contents: read   # MANDATORY: Allows checking out your repository source files
+      id-token: write  # MANDATORY: Injects ACTIONS_ID_TOKEN_REQUEST_URL for OIDC
+      contents: read
 
     steps:
       - name: Checkout Source Code
@@ -18,20 +19,14 @@ jobs:
       - name: Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
 
-      - name: Upgrade npm to >= 11.5.1 (Mandatory for OIDC Trusted Publishing)
-        run: |
-          npm install -g npm@latest
-          npm --version
-
-      - name: Install Dependencies
+      - name: Install Dependencies & Build
         run: |
           rm -f package-lock.json
           npm install --no-audit --no-fund
+          npm run build
 
-      - name: Build Assets
-        run: npm run build
-
-      - name: Publish to npm Registry via Secure OIDC Handshake
-        run: npm publish --provenance --access public --ignore-scripts
+      - name: Publish to npm via OIDC
+        run: |
+          npx --yes npm@latest publish --provenance --access public --ignore-scripts

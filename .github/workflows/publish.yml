@@ -8,8 +8,8 @@ jobs:
   publish-npm:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write  # MANDATORY: Allows GitHub to sign the cryptographic handshake
-      contents: read   # MANDATORY: Allows the checkout of your source files
+      id-token: write  # Mandatory rule to register OIDC handshake tokens
+      contents: read   # Mandatory rule to check out repository code bases
 
     steps:
       - name: Checkout Source Code
@@ -26,13 +26,8 @@ jobs:
           rm -f package-lock.json
           npm install --no-audit --no-fund
 
-      - name: Build Assets
-        run: npm run build
-
-      - name: Copy TypeScript Declaration Files
-        run: |
-          cp src/index.d.ts ./index.d.ts || true
-          cp src/backend.d.ts ./backend.d.ts || true
+      # We do NOT run 'npm run build' manually here because 'prepublishOnly' 
+      # inside package.json automatically builds the assets during npm publish.
 
       - name: Publish to npm Registry via Secure OIDC Handshake
         # --provenance registers the build validation matrix cleanly on the public log ledger

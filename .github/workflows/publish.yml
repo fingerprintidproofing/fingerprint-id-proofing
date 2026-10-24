@@ -19,10 +19,11 @@ jobs:
           registry-url: 'https://npmjs.org'
 
       - name: Install Dependencies
-        # Fixes the URL path to use 'registry.npmjs.org/' with the proper trailing slash
-        # and tells npm to dynamically fetch package assets, bypassing lockfile target domain bugs.
+        # We completely delete the lockfile to destroy the bad hardcoded zod download URLs.
+        # Then, we run standard install which pulls dynamically from registry.npmjs.org.
         run: |
-          npm install --registry=https://npmjs.org --no-audit --no-fund
+          rm -f package-lock.json
+          npm install --no-audit --no-fund
 
       - name: Build Assets
         run: npm run build

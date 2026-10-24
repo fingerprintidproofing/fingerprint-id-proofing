@@ -8,27 +8,38 @@ jobs:
   publish-npm:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write  # Mandatory rule to register OIDC handshake tokens
-      contents: read   # Mandatory rule to check out repository code bases
+      id-token: write  # MANDATORY: Allows GitHub to sign the cryptographic OIDC handshake
+      contents: read   # MANDATORY: Allows checking out your repository source files
 
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js Environment & Dependency Cache
+      - name: Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          registry-url: 'https://registry.npmjs.org/'
+          # IMPORTANT: Do NOT set registry-url here when using OIDC with setup-node@v4.
+          # Your package.json already defines publishConfig.registry.
+
+      - name: Upgrade npm to >= 11.5.1 (Mandatory for OIDC Trusted Publishing)
+        run: |
+          npm install -g npm@latest
+          npm --version
 
       - name: Install Dependencies
         run: |
           rm -f package-lock.json
           npm install --no-audit --no-fund
 
-      # We do NOT run 'npm run build' manually here because 'prepublishOnly' 
-      # inside package.json automatically builds the assets during npm publish.
+      - name: Build Assets
+        run: npm run build
+
+      - name: Copy TypeScript Declaration Files
+        run: |
+          cp src/index.d.ts ./index.d.ts || true
+          cp src/backend.d.ts ./backend.d.ts || true
 
       - name: Publish to npm Registry via Secure OIDC Handshake
-        # --provenance registers the build validation matrix cleanly on the public log ledger
-        run: npm publish --provenance --access public
+        # --ignore-scripts prevents prepublishOnly from running 'npm run build' a second time
+        run: npm publish --provenance --access public --ignore-scripts

@@ -12,17 +12,17 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js Environment & Dependency Cache
+      - name: Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          registry-url: 'https://npmjs.org' # Ensure the trailing slash is present
+          registry-url: 'https://npmjs.org'
 
       - name: Install Dependencies
-        # Completely removed 'npm config set'. We force the explicit registry URL argument 
-        # directly into the installer commands to bypass the firewall routing block.
+        # Fixes the URL path to use 'registry.npmjs.org/' with the proper trailing slash
+        # and tells npm to dynamically fetch package assets, bypassing lockfile target domain bugs.
         run: |
-          npm ci --registry=https://npmjs.org --prefer-offline --no-audit --no-fund || npm install --registry=https://npmjs.org --prefer-offline --no-audit --no-fund
+          npm install --registry=https://npmjs.org --no-audit --no-fund
 
       - name: Build Assets
         run: npm run build

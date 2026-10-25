@@ -65,7 +65,7 @@ function generateTrackingUuid() {
 }
 
 function cyrb128(str) {
-  let h1 = 1779033703, h2 = 3024733165, h3 = 3362453659, h4 = 502494325;
+  let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
   for (let i = 0, k; i < str.length; i++) {
     k = str.charCodeAt(i);
     h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
@@ -75,7 +75,13 @@ function cyrb128(str) {
   }
   h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
   h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
-  return [(h1 ^ h2) >>> 0].toString(16);
+  h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+  h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+  h1 ^= h2; h2 ^= h3; h3 ^= h4; h4 ^= h1;
+
+  return [h1, h2, h3, h4]
+    .map((value) => (value >>> 0).toString(16).padStart(8, '0'))
+    .join('');
 }
 
 function getDeepSystemFootprint() {
@@ -134,7 +140,7 @@ function calculateStandaloneVisitorId() {
     (window.navigator.userAgent || '').replace(/\d+\.\d+\.\d+/g, '') 
   ].join(':::');
 
-  activeVisitorId = `vis_${cyrb128(hardwareSeed)}`;
+  activeVisitorId = cyrb128(hardwareSeed);
   return activeVisitorId;
 }
 

@@ -58,7 +58,7 @@ test('client generates a visitor ID offline and initializes one telemetry sessio
 
   const trackingVisitorId = FingerprintIdProofing.getVisitorId();
   assert.strictEqual(typeof trackingVisitorId, 'string');
-  assert.ok(trackingVisitorId.startsWith('vis_'), 'Visitor ID signature must start with vis_ prefix.');
+  assert.match(trackingVisitorId, /^[0-9a-f]{32}$/, 'Visitor ID must be 32 lowercase hexadecimal characters.');
   assert.strictEqual(requests.length, 1, 'Visitor ID generation must not make network requests.');
 
   const [sessionId, sameSessionId] = await Promise.all([

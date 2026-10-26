@@ -28,17 +28,16 @@ jobs:
           npm --version
 
       - name: Install Dependencies
-        run: |
-          rm -f package-lock.json
-          npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
-      - name: Build Assets
-        run: npm run build
-
-      - name: Copy TypeScript Declaration Files
+      - name: Validate Committed Package Artifacts
         run: |
-          cp src/index.d.ts ./index.d.ts || true
-          cp src/backend.d.ts ./backend.d.ts || true
+          test -s index.js
+          test -s backend.js
+          test -s backend.cjs
+          test -s index.d.ts
+          test -s backend.d.ts
+          npm test
 
       - name: Publish to npm Registry via Secure OIDC Handshake
         # --ignore-scripts prevents prepublishOnly from running 'npm run build' a second time

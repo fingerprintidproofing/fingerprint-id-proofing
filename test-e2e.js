@@ -1,6 +1,7 @@
 // test-e2e.js - Production Obfuscated Integration Test
 import test from 'node:test';
 import assert from 'node:assert';
+import { createRequire } from 'node:module';
 import { Window } from 'happy-dom';
 
 // ---------------------------------------------------------------------------
@@ -35,6 +36,8 @@ global.window.HTMLCanvasElement.prototype.getContext = function() {
 // ---------------------------------------------------------------------------
 const { default: FingerprintIdProofing } = await import('./index.js');
 const { FingerprintIdProofingVerifier } = await import('./backend.js');
+const require = createRequire(import.meta.url);
+const commonJsBackend = require('fingerprint-id-proofing/backend');
 
 // ---------------------------------------------------------------------------
 // C. PIPELINE INTEGRATION TEST
@@ -97,5 +100,30 @@ test('backend verifier sends credentials server-side and returns obligation on s
   assert.strictEqual(fallback.acquiredAttributes.calculatedVisitorId, 'vis_1');
   assert.ok(Object.values(fallback.userAssertionList[0].assertions).every((value) => value === 'unverified'));
 
+  global.fetch = async () => ({ ok: false, status: 503 });
+  const serverFailureFallback = await verifier.verifySessionScore('session-1', 'user-1', 'vis_1');
+  assert.strictEqual(serverFailureFallback.policyDecision, 'obligation');
+
+  global.fetch = async () => ({ ok: false, status: 401 });
+  await assert.rejects(verifier.verifySessionScore('session-1', 'user-1', 'vis_1'), /status error: 401/);
+
+  global.fetch = async () => ({ ok: true, json: async () => ({ policyDecision: 'unexpected' }) });
+  await assert.rejects(verifier.verifySessionScore('session-1', 'user-1', 'vis_1'), /recognized policy decision/);
+
   await assert.rejects(verifier.verifySessionScore('', 'user-1', 'vis_1'), /Session ID/);
+});
+
+test('CommonJS backend export is constructable and preserves a deny decision', async () => {
+  assert.strictEqual(typeof commonJsBackend, 'function');
+  assert.strictEqual(typeof commonJsBackend.FingerprintIdProofingVerifier, 'function');
+  const verifier = new commonJsBackend({ secretApiKey: 'test-secret' });
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ({ policyDecision: 'deny', errorCode: 'RISK_DENIED' })
+  });
+
+  const result = await verifier.verifySessionScore('session-1', 'user-1', 'visitor-1');
+  assert.strictEqual(result.policyDecision, 'deny');
+  assert.strictEqual(result.errorCode, 'RISK_DENIED');
+  assert.notStrictEqual(result.sdkFallback, true);
 });

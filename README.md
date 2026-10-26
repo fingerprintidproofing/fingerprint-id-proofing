@@ -99,6 +99,16 @@ const assessment = await verifier.verifySessionScore(
   visitorId
 );
 
+
+For CommonJS Express applications, the backend entry also supports `require()`:
+
+```js
+const FingerprintIdProofingVerifier = require('fingerprint-id-proofing/backend');
+
+const verifier = new FingerprintIdProofingVerifier({
+  secretApiKey: process.env.FINGERPRINT_ID_PROOFING_SECRET
+});
+```
 if (assessment.policyDecision === 'obligation') {
   // Start MFA or route to manual review. Never grant access from an obligation.
   return res.status(202).json({
@@ -113,7 +123,7 @@ if (assessment.policyDecision !== 'approve') {
 }
 ```
 
-The verifier sends the session ID, user ID, and visitor ID to the assessment API. Network errors, non-success HTTP responses, and malformed assessment responses return a conservative fallback with `policyDecision: "obligation"`, `policyObligation: true`, `sdkFallback: true`, and `errorCode: "ASSESSMENT_UNAVAILABLE"`. Signals in this fallback are marked `unverified`; it never grants approval. Route obligations to MFA or manual review. Invalid method inputs still reject with an error.
+The verifier sends the session ID, user ID, and visitor ID to the assessment API. Network failures and server 5xx responses return a conservative fallback with `policyDecision: "obligation"`, `policyObligation: true`, `sdkFallback: true`, and `errorCode: "ASSESSMENT_UNAVAILABLE"`. Signals in this fallback are marked `unverified`; it never grants approval. Client errors (4xx), malformed responses, and invalid method inputs reject with an error rather than being treated as an outage. Route obligations to MFA or manual review.
 
 ## Server-Side Verify Risk Assessment - If you cant use NPM module then use direct API for risk score assesment 
 

@@ -61,8 +61,9 @@ export class FingerprintIdProofingVerifier {
       throw new Error("A valid unique hardware Visitor ID signature vector must be specified for interlocking checks.");
     }
 
+    let response;
     try {
-      const response = await fetch(this.verificationApiUrl, {
+      response = await fetch(this.verificationApiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -75,20 +76,23 @@ export class FingerprintIdProofingVerifier {
           visitorId: visitorId.trim()
         })
       });
-
-      if (!response.ok) {
-        throw new Error(`Your security engine verification endpoint returned status error: ${response.status}`);
-      }
-
-      const assessment = await response.json();
-      if (!assessment || typeof assessment !== 'object' || Array.isArray(assessment) ||
-          !['approve', 'deny', 'obligation'].includes(assessment.policyDecision)) {
-        throw new Error('Assessment response did not include a recognized policy decision.');
-      }
-
-      return assessment;
     } catch (error) {
       return createUnavailableAssessment(sessionId.trim(), visitorId.trim());
     }
+
+    if (response.status >= 500) {
+      return createUnavailableAssessment(sessionId.trim(), visitorId.trim());
+    }
+    if (!response.ok) {
+      throw new Error(`Your security engine verification endpoint returned status error: ${response.status}`);
+    }
+
+    const assessment = await response.json();
+    if (!assessment || typeof assessment !== 'object' || Array.isArray(assessment) ||
+        !['approve', 'deny', 'obligation'].includes(assessment.policyDecision)) {
+      throw new Error('Assessment response did not include a recognized policy decision.');
+    }
+
+    return assessment;
   }
 }

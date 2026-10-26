@@ -1,6 +1,6 @@
 {
   "name": "fingerprint-id-proofing",
-  "version": "1.0.34",
+  "version": "1.0.35",
   "description": "JavaScript browser fingerprinting and telemetry SDK for device signals, identity proofing, and fraud risk scoring.",
   "repository": {
     "type": "git",
@@ -18,6 +18,8 @@
     },
     "./backend": {
       "types": "./backend.d.ts",
+      "import": "./backend.js",
+      "require": "./backend.cjs",
       "default": "./backend.js"
     }
   },
@@ -25,12 +27,13 @@
     "index.js",
     "index.d.ts",
     "backend.js",
+    "backend.cjs",
     "backend.d.ts"
   ],
   "scripts": {
     "clean": "rm -f index.js backend.js",
-    "build:client": "javascript-obfuscator src/index.js --output ./index.js --compact true --self-defending true --string-array true --string-array-encoding 'rc4' --string-array-threshold 1 --control-flow-flattening true --control-flow-flattening-threshold 1 --dead-code-injection true --dead-code-injection-threshold 1",
-    "build:server": "cp src/backend.js ./backend.js",
+    "build:client": "javascript-obfuscator src/idex.js --output ./index.js --compact true --self-defending true --string-array true --string-array-encoding 'rc4' --string-array-threshold 1 --control-flow-flattening true --control-flow-flattening-threshold 1 --dead-code-injection true --dead-code-injection-threshold 1",
+    "build:server": "cp src/backend.js ./backend.js && cp src/backend.cjs ./backend.cjs",
     "build": "npm run clean && npm run build:client && npm run build:server",
     "test": "node --test",
     "prepublishOnly": "npm run build"

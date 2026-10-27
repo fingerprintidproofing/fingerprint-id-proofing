@@ -1,6 +1,6 @@
 // backend.js - Developer SDK Integration Client (Pure JavaScript)
 
-function createUnavailableAssessment(sessionId, visitorId) {
+function createUnavailableAssessment(sessionId, visitorId, errorDescription = "") {
   const unverifiedAssertions = {
     "detect.bot": "unverified",
     "detect.torNode": "unverified",
@@ -16,7 +16,7 @@ function createUnavailableAssessment(sessionId, visitorId) {
 
   return {
     errorCode: "ASSESSMENT_UNAVAILABLE",
-    errorDescription: "Assessment could not be completed. Require step-up verification or manual review.",
+    errorDescription: errorDescription || "Assessment could not be completed. Require step-up verification or manual review.",
     transaction_id: sessionId,
     userAttributes: [],
     acquiredAttributes: { calculatedVisitorId: visitorId },
@@ -61,6 +61,10 @@ export class FingerprintIdProofingVerifier {
       throw new Error("A valid unique hardware Visitor ID signature vector must be specified for interlocking checks.");
     }
 
+    const cleanSessionId = sessionId.trim();
+    const cleanUserId = userId.trim();
+    const cleanVisitorId = visitorId.trim();
+
     let response;
     try {
       response = await fetch(this.verificationApiUrl, {
@@ -71,28 +75,47 @@ export class FingerprintIdProofingVerifier {
         },
         // 💥 PASS ALL THREE TO THE SECURE VERIFICATION INGESTION ENGINE
         body: JSON.stringify({ 
-          sessionId: sessionId.trim(),
-          userId: userId.trim(),
-          visitorId: visitorId.trim()
+          sessionId: cleanSessionId,
+          userId: cleanUserId,
+          visitorId: cleanVisitorId
         })
       });
     } catch (error) {
-      return createUnavailableAssessment(sessionId.trim(), visitorId.trim());
+      return createUnavailableAssessment(cleanSessionId, cleanVisitorId, error.message);
     }
 
+    // Handle high-level server drops gracefully
     if (response.status >= 500) {
-      return createUnavailableAssessment(sessionId.trim(), visitorId.trim());
+      return createUnavailableAssessment(cleanSessionId, cleanVisitorId, `Internal server core error: ${response.status}`);
     }
+
+    // 💥 THE SILENT RESOLUTION FIX: Parse out 400, 404, or 401 client error matrices without crashing
     if (!response.ok) {
-      throw new Error(`Your security engine verification endpoint returned status error: ${response.status}`);
+      try {
+        const errorJson = await response.json();
+        // If the server provides a structured threat error payload, return it directly to the developer
+        if (errorJson && typeof errorJson === 'object' && ['approve', 'deny', 'obligation'].includes(errorJson.policyDecision)) {
+          return errorJson;
+        }
+        return createUnavailableAssessment(cleanSessionId, cleanVisitorId, errorJson.errorDescription || errorJson.error || `HTTP_CLIENT_ERROR_${response.status}`);
+      } catch (jsonError) {
+        // Fallback if the endpoint output is unparsed text
+        return createUnavailableAssessment(cleanSessionId, cleanVisitorId, `Gateway endpoint returned raw status: ${response.status}`);
+      }
     }
 
-    const assessment = await response.json();
-    if (!assessment || typeof assessment !== 'object' || Array.isArray(assessment) ||
-        !['approve', 'deny', 'obligation'].includes(assessment.policyDecision)) {
-      throw new Error('Assessment response did not include a recognized policy decision.');
-    }
+    try {
+      const assessment = await response.json();
+      
+      // Validate object traits before returning the collection variables
+      if (!assessment || typeof assessment !== 'object' || Array.isArray(assessment) ||
+          !['approve', 'deny', 'obligation'].includes(assessment.policyDecision)) {
+        return createUnavailableAssessment(cleanSessionId, cleanVisitorId, "Assessment response did not include a recognized policy decision.");
+      }
 
-    return assessment;
+      return assessment;
+    } catch (parseFault) {
+      return createUnavailableAssessment(cleanSessionId, cleanVisitorId, "Malformed JSON data mapping encountered during stream resolution.");
+    }
   }
 }

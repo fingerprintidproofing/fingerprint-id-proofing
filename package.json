@@ -4,7 +4,7 @@
   "description": "JavaScript browser fingerprinting and telemetry SDK for device signals, identity proofing, and fraud risk scoring.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fingerprintidproofing/fingerprint-npm.git"
+    "url": "git+https://github.com/fingerprintidproofing/fingerprint-id-proofing.git"
   },
   "main": "index.js",
   "types": "index.d.ts",

@@ -12,7 +12,6 @@ class FingerprintIdProofingVerifier {
     );
   }
 
-  // Keep CommonJS behavior aligned with the canonical ESM backend implementation.
   async verifySessionScore(sessionId, userId, visitorId) {
     const verifier = await this.verifierPromise;
     return verifier.verifySessionScore(sessionId, userId, visitorId);

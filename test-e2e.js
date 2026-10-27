@@ -74,7 +74,7 @@ test('client generates a visitor ID offline and initializes one telemetry sessio
   assert.strictEqual(requests[1][0], 'https://fingerprintidproofing.com/api/v1/get-session-key');
 });
 
-test('backend verifier sends credentials server-side and returns obligation on service failures', async () => {
+test('backend verifier sends credentials and returns obligation for handled response failures', async () => {
   const verifier = new FingerprintIdProofingVerifier({ secretApiKey: ' test-secret ' });
   let request;
   global.fetch = async (...args) => {
@@ -104,11 +104,15 @@ test('backend verifier sends credentials server-side and returns obligation on s
   const serverFailureFallback = await verifier.verifySessionScore('session-1', 'user-1', 'vis_1');
   assert.strictEqual(serverFailureFallback.policyDecision, 'obligation');
 
-  global.fetch = async () => ({ ok: false, status: 401 });
-  await assert.rejects(verifier.verifySessionScore('session-1', 'user-1', 'vis_1'), /status error: 401/);
+  global.fetch = async () => ({ ok: false, status: 401, json: async () => ({}) });
+  const clientErrorFallback = await verifier.verifySessionScore('session-1', 'user-1', 'vis_1');
+  assert.strictEqual(clientErrorFallback.policyDecision, 'obligation');
+  assert.strictEqual(clientErrorFallback.errorDescription, 'HTTP_CLIENT_ERROR_401');
 
   global.fetch = async () => ({ ok: true, json: async () => ({ policyDecision: 'unexpected' }) });
-  await assert.rejects(verifier.verifySessionScore('session-1', 'user-1', 'vis_1'), /recognized policy decision/);
+  const malformedFallback = await verifier.verifySessionScore('session-1', 'user-1', 'vis_1');
+  assert.strictEqual(malformedFallback.policyDecision, 'obligation');
+  assert.strictEqual(malformedFallback.errorDescription, 'Assessment response did not include a recognized policy decision.');
 
   await assert.rejects(verifier.verifySessionScore('', 'user-1', 'vis_1'), /Session ID/);
 });
@@ -126,4 +130,15 @@ test('CommonJS backend export is constructable and preserves a deny decision', a
   assert.strictEqual(result.policyDecision, 'deny');
   assert.strictEqual(result.errorCode, 'RISK_DENIED');
   assert.notStrictEqual(result.sdkFallback, true);
+
+  global.fetch = async () => ({ ok: false, status: 503 });
+  const fallback = await verifier.verifySessionScore('session-1', 'user-1', 'visitor-1');
+  assert.strictEqual(fallback.policyDecision, 'obligation');
+  assert.strictEqual(fallback.errorCode, 'ASSESSMENT_UNAVAILABLE');
+  assert.strictEqual(fallback.sdkFallback, true);
+
+  global.fetch = async () => ({ ok: false, status: 401, json: async () => ({ error: 'invalid key' }) });
+  const clientError = await verifier.verifySessionScore('session-1', 'user-1', 'visitor-1');
+  assert.strictEqual(clientError.policyDecision, 'obligation');
+  assert.strictEqual(clientError.errorDescription, 'invalid key');
 });
